@@ -27,6 +27,8 @@ I structured my spreadsheet using a basic star schema with fact and dimension ta
 
 ## How to use this project
 
+![Gmail to Sheets Job Tracker Pipeline](assets/gmail-pipeline.png)
+
 ### 1. Set up the Google Sheet
 1. Create a new Google Sheet (I called mine `LifeOS`).
 2. Create 9 tabs using the exact names from the Data Structure section above.
@@ -43,6 +45,7 @@ I structured my spreadsheet using a basic star schema with fact and dimension ta
    - `CalendarHabits.json`: Pulls my gym and study sessions from my calendar automatically every hour.
    - `ProjectsSync.json`: Runs every morning to check if I have open tasks across my active projects.
    - `DailyAlertsAndSummary.json`: Sends me an email every morning if I missed my weekly habit goals or need to follow up on a job application.
+   - `WeeklyReport.json`: Runs every Monday morning to aggregate the previous week's metrics (tasks completed, hours studied, workouts done) and emails me a summary.
 2. In each workflow, replace the Google Sheets node Document IDs with your own Spreadsheet ID.
 3. Activate the workflows and you're good to go!
 
