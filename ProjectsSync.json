@@ -23,10 +23,10 @@
     },
     {
       "parameters": {
-        "operation": "getAll",
+        "operation": "read",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}",
           "mode": "id"
         },
         "sheetName": {
@@ -39,18 +39,24 @@
       "id": "fedcba09-8765-4321-abcd-ef1234567890",
       "name": "Read dim_project",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         220,
         200
-      ]
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
     },
     {
       "parameters": {
-        "operation": "getAll",
+        "operation": "read",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}",
           "mode": "id"
         },
         "sheetName": {
@@ -63,11 +69,17 @@
       "id": "12345678-90ab-cdef-1234-567890abcdef",
       "name": "Read fact_tasks",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         440,
         200
-      ]
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
     },
     {
       "parameters": {
@@ -84,10 +96,10 @@
     },
     {
       "parameters": {
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}",
           "mode": "id"
         },
         "sheetName": {
@@ -112,11 +124,17 @@
       "id": "bbbbcccc-dddd-eeee-ffff-111122223333",
       "name": "Append missing tasks",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         880,
         200
-      ]
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
     }
   ],
   "connections": {
@@ -165,7 +183,12 @@
       ]
     }
   },
+  "active": false,
   "settings": {
     "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
   }
 }

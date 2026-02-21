@@ -23,10 +23,10 @@
         },
         {
             "parameters": {
-                "operation": "getAll",
+                "operation": "read",
                 "documentId": {
                     "__rl": true,
-                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "value": "={{ $env.LIFEOS_SHEET_ID }}",
                     "mode": "id"
                 },
                 "sheetName": {
@@ -39,18 +39,24 @@
             "id": "2bb22b22-3cc3-4dd4-5ee5-6ff66f66f66f",
             "name": "Read fact_applications",
             "type": "n8n-nodes-base.googleSheets",
-            "typeVersion": 4,
+            "typeVersion": 4.5,
             "position": [
                 200,
                 100
-            ]
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "GoogleSheets_LifeOS",
+                    "name": "GoogleSheets_LifeOS"
+                }
+            }
         },
         {
             "parameters": {
-                "operation": "getAll",
+                "operation": "read",
                 "documentId": {
                     "__rl": true,
-                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "value": "={{ $env.LIFEOS_SHEET_ID }}",
                     "mode": "id"
                 },
                 "sheetName": {
@@ -63,11 +69,17 @@
             "id": "3cc33c33-4dd4-5ee5-6ff6-7aa77a77a77a",
             "name": "Read alerts",
             "type": "n8n-nodes-base.googleSheets",
-            "typeVersion": 4,
+            "typeVersion": 4.5,
             "position": [
                 400,
                 100
-            ]
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "GoogleSheets_LifeOS",
+                    "name": "GoogleSheets_LifeOS"
+                }
+            }
         },
         {
             "parameters": {
@@ -84,10 +96,10 @@
         },
         {
             "parameters": {
-                "operation": "getAll",
+                "operation": "read",
                 "documentId": {
                     "__rl": true,
-                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "value": "={{ $env.LIFEOS_SHEET_ID }}",
                     "mode": "id"
                 },
                 "sheetName": {
@@ -100,18 +112,24 @@
             "id": "5ee55e55-6ff6-7aa7-8bb8-9cc99c99c99c",
             "name": "Read dim_habit",
             "type": "n8n-nodes-base.googleSheets",
-            "typeVersion": 4,
+            "typeVersion": 4.5,
             "position": [
                 200,
                 300
-            ]
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "GoogleSheets_LifeOS",
+                    "name": "GoogleSheets_LifeOS"
+                }
+            }
         },
         {
             "parameters": {
-                "operation": "getAll",
+                "operation": "read",
                 "documentId": {
                     "__rl": true,
-                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "value": "={{ $env.LIFEOS_SHEET_ID }}",
                     "mode": "id"
                 },
                 "sheetName": {
@@ -124,11 +142,17 @@
             "id": "6ff66f66-7aa7-8bb8-9cc9-0dd00d00d00d",
             "name": "Read fact_habits",
             "type": "n8n-nodes-base.googleSheets",
-            "typeVersion": 4,
+            "typeVersion": 4.5,
             "position": [
                 400,
                 300
-            ]
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "GoogleSheets_LifeOS",
+                    "name": "GoogleSheets_LifeOS"
+                }
+            }
         },
         {
             "parameters": {
@@ -145,7 +169,8 @@
         },
         {
             "parameters": {
-                "mode": "passThrough"
+                "mode": "chooseBranch",
+                "output": "input1"
             },
             "id": "8bb88b88-9cc9-0dd0-1ee1-2ff22f22f22f",
             "name": "Merge Alerts",
@@ -158,10 +183,10 @@
         },
         {
             "parameters": {
-                "operation": "append",
+                "operation": "appendOrUpdate",
                 "documentId": {
                     "__rl": true,
-                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "value": "={{ $env.LIFEOS_SHEET_ID }}",
                     "mode": "id"
                 },
                 "sheetName": {
@@ -184,11 +209,17 @@
             "id": "9cc99c99-0dd0-1ee1-2ff2-3aa33a33a33a",
             "name": "Append Alerts",
             "type": "n8n-nodes-base.googleSheets",
-            "typeVersion": 4,
+            "typeVersion": 4.5,
             "position": [
                 1000,
                 200
-            ]
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "GoogleSheets_LifeOS",
+                    "name": "GoogleSheets_LifeOS"
+                }
+            }
         },
         {
             "parameters": {
@@ -217,7 +248,13 @@
             "position": [
                 1400,
                 200
-            ]
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "Gmail_LifeOS",
+                    "name": "Gmail_LifeOS"
+                }
+            }
         }
     ],
     "connections": {
@@ -337,7 +374,13 @@
             ]
         }
     },
+    "active": false,
     "settings": {
-        "executionOrder": "v1"
+        "executionOrder": "v1",
+        "timezone": "America/Bogota"
+    },
+    "pinData": {},
+    "meta": {
+        "templateCredsSetupCompleted": false
     }
 }

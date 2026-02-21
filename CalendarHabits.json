@@ -54,10 +54,10 @@
     },
     {
       "parameters": {
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}",
           "mode": "id"
         },
         "sheetName": {
@@ -80,18 +80,24 @@
       "id": "ad604c55-2244-486a-b2f7-fe8d0ee5df26",
       "name": "Append fact_habits",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         660,
         100
-      ]
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
     },
     {
       "parameters": {
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}",
           "mode": "id"
         },
         "sheetName": {
@@ -115,11 +121,17 @@
       "id": "ad604c55-2244-486a-b2f7-fe8d0ee5df27",
       "name": "Append fact_learning",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
+      "typeVersion": 4.5,
       "position": [
         660,
         300
-      ]
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
     }
   ],
   "connections": {
@@ -164,7 +176,12 @@
       ]
     }
   },
+  "active": false,
   "settings": {
     "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
   }
 }
