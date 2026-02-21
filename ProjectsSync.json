@@ -1,0 +1,171 @@
+{
+  "name": "ProjectsSync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cdefab12-3456-7890-abcd-ef1234567890",
+      "name": "Cron (08:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "dim_project",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "fedcba09-8765-4321-abcd-ef1234567890",
+      "name": "Read dim_project",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "fact_tasks",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "12345678-90ab-cdef-1234-567890abcdef",
+      "name": "Read fact_tasks",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const projects = $items(\"Read dim_project\").map(i => i.json);\nconst tasks = $items(\"Read fact_tasks\").map(i => i.json);\n\nconst now = new Date();\nconst nextWeek = new Date();\nnextWeek.setDate(now.getDate() + 7);\n\nconst newTasks = [];\n\nfor (const proj of projects) {\n  if (proj.status === 'completed' || proj.status === 'archived') continue;\n\n  // Check for existing open task\n  const hasTask = tasks.some(t => \n    t.project_id === proj.project_id && \n    t.status !== 'done' && \n    t.source === 'project_review' &&\n    new Date(t.due_date) <= nextWeek\n  );\n\n  if (!hasTask) {\n    newTasks.push({\n      json: {\n        task_id: `TASK_${Date.now()}_${proj.project_id}`,\n        project_id: proj.project_id,\n        created_date: now.toISOString().split('T')[0],\n        due_date: nextWeek.toISOString().split('T')[0],\n        status: 'todo',\n        source: 'project_review',\n        description: `Review project ${proj.name}`\n      }\n    });\n  }\n}\n\nreturn newTasks;"
+      },
+      "id": "abcdef12-3456-7890-abcd-ef1234567890",
+      "name": "Identify Missing Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "fact_tasks",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task_id": "={{ $json.task_id }}",
+            "project_id": "={{ $json.project_id }}",
+            "created_date": "={{ $json.created_date }}",
+            "due_date": "={{ $json.due_date }}",
+            "status": "={{ $json.status }}",
+            "source": "={{ $json.source }}",
+            "description": "={{ $json.description }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "bbbbcccc-dddd-eeee-ffff-111122223333",
+      "name": "Append missing tasks",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        880,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron (08:00)": {
+      "main": [
+        [
+          {
+            "node": "Read dim_project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read dim_project": {
+      "main": [
+        [
+          {
+            "node": "Read fact_tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read fact_tasks": {
+      "main": [
+        [
+          {
+            "node": "Identify Missing Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Missing Tasks": {
+      "main": [
+        [
+          {
+            "node": "Append missing tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,343 @@
+{
+    "name": "DailyAlertsAndSummary",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "expression": "0 9 * * *"
+                        }
+                    ]
+                }
+            },
+            "id": "1aa11a11-2bb2-3cc3-4dd4-5ee55e55e55e",
+            "name": "Cron (09:00)",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                0,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "fact_applications",
+                    "mode": "name"
+                },
+                "options": {}
+            },
+            "id": "2bb22b22-3cc3-4dd4-5ee5-6ff66f66f66f",
+            "name": "Read fact_applications",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4,
+            "position": [
+                200,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "alerts",
+                    "mode": "name"
+                },
+                "options": {}
+            },
+            "id": "3cc33c33-4dd4-5ee5-6ff6-7aa77a77a77a",
+            "name": "Read alerts",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4,
+            "position": [
+                400,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const apps = $items(\"Read fact_applications\").map(i => i.json);\nconst alerts = $items(\"Read alerts\").map(i => i.json);\n\nconst now = new Date();\nconst sevenDaysAgo = new Date();\nsevenDaysAgo.setDate(now.getDate() - 7);\n\nconst newAlerts = [];\n\n// Job Follow-Ups\nfor (const app of apps) {\n  if (app.status === 'captured' || app.status === 'applied') {\n    const appliedDate = new Date(app.applied_date);\n    if (appliedDate < sevenDaysAgo) {\n      const expectedMessage = `Follow up with ${app.company} for ${app.role}`;\n      const alertExists = alerts.some(a => a.category === 'job_followup' && a.message === expectedMessage);\n      if (!alertExists) {\n        newAlerts.push({\n          json: {\n            alert_id: `ALT_${Date.now()}_APP`,\n            date: now.toISOString().split('T')[0],\n            category: 'job_followup',\n            message: expectedMessage,\n            status: 'new'\n          }\n        });\n      }\n    }\n  }\n}\n\nreturn newAlerts;"
+            },
+            "id": "4dd44d44-5ee5-6ff6-7aa7-8bb88b88b88b",
+            "name": "Generate Job Alerts",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "dim_habit",
+                    "mode": "name"
+                },
+                "options": {}
+            },
+            "id": "5ee55e55-6ff6-7aa7-8bb8-9cc99c99c99c",
+            "name": "Read dim_habit",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4,
+            "position": [
+                200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "fact_habits",
+                    "mode": "name"
+                },
+                "options": {}
+            },
+            "id": "6ff66f66-7aa7-8bb8-9cc9-0dd00d00d00d",
+            "name": "Read fact_habits",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4,
+            "position": [
+                400,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const habits = $items(\"Read dim_habit\").map(i => i.json);\nconst events = $items(\"Read fact_habits\").map(i => i.json);\n\nconst now = new Date();\nconst sevenDaysAgo = new Date();\nsevenDaysAgo.setDate(now.getDate() - 7);\n\nconst newAlerts = [];\n\nfor (const habit of habits) {\n  let doneCount = 0;\n  for (const ev of events) {\n    const evDate = new Date(ev.date);\n    if (ev.habit_id === habit.habit_id && ev.status === 'done' && evDate >= sevenDaysAgo && evDate <= now) {\n      doneCount++;\n    }\n  }\n  \n  const target = parseInt(habit.target_week) || 0;\n  if (doneCount < target) {\n    newAlerts.push({\n      json: {\n        alert_id: `ALT_${Date.now()}_HABIT_${habit.habit_id}`,\n        date: now.toISOString().split('T')[0],\n        category: 'habit_warning',\n        message: `You are behind on ${habit.name} (${doneCount}/${target})`,\n        status: 'new'\n      }\n    });\n  }\n}\n\nreturn newAlerts;"
+            },
+            "id": "7aa77a77-8bb8-9cc9-0dd0-1ee11e11e11e",
+            "name": "Generate Habit Alerts",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "passThrough"
+            },
+            "id": "8bb88b88-9cc9-0dd0-1ee1-2ff22f22f22f",
+            "name": "Merge Alerts",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 3,
+            "position": [
+                800,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_SPREADSHEET_ID_HERE",
+                    "mode": "id"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "alerts",
+                    "mode": "name"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "alert_id": "={{ $json.alert_id }}",
+                        "date": "={{ $json.date }}",
+                        "category": "={{ $json.category }}",
+                        "message": "={{ $json.message }}",
+                        "status": "={{ $json.status }}"
+                    }
+                },
+                "options": {}
+            },
+            "id": "9cc99c99-0dd0-1ee1-2ff2-3aa33a33a33a",
+            "name": "Append Alerts",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4,
+            "position": [
+                1000,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Gather all new alerts returning a single text blob representing email body\nlet emailBody = \"Daily LifeOS Alerts Summary:\\n\\n\";\nconst alerts = $input.all();\n\nif (alerts.length === 0 || (alerts.length === 1 && !alerts[0].json.message)) {\n  emailBody += \"No new alerts! You are perfectly on track.\";\n} else {\n  emailBody += alerts.map(a => `- [${a.json.category}] ${a.json.message}`).join(\"\\n\");\n}\n\nreturn [{ json: { email_body: emailBody } }];"
+            },
+            "id": "0dd00d00-1ee1-2ff2-3aa3-4bb44b44b44b",
+            "name": "Format Email",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1200,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "sendTo": "YOUR_EMAIL@gmail.com",
+                "subject": "LifeOS Daily Alert Summary",
+                "message": "={{ $json.email_body }}",
+                "options": {}
+            },
+            "id": "1ee11e11-2ff2-3aa3-4bb4-5cc55c55c55c",
+            "name": "Send Email",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.1,
+            "position": [
+                1400,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Cron (09:00)": {
+            "main": [
+                [
+                    {
+                        "node": "Read fact_applications",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Read dim_habit",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read fact_applications": {
+            "main": [
+                [
+                    {
+                        "node": "Read alerts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read alerts": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Job Alerts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Job Alerts": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Alerts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read dim_habit": {
+            "main": [
+                [
+                    {
+                        "node": "Read fact_habits",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read fact_habits": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Habit Alerts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Habit Alerts": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Alerts",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Merge Alerts": {
+            "main": [
+                [
+                    {
+                        "node": "Append Alerts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Append Alerts": {
+            "main": [
+                [
+                    {
+                        "node": "Format Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Email": {
+            "main": [
+                [
+                    {
+                        "node": "Send Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

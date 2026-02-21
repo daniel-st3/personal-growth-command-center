@@ -1,0 +1,534 @@
+{
+  "name": "Daily Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "cronExpression": "0 9 * * *"
+        }
+      },
+      "id": "cronDaily0900_01",
+      "name": "Cron Daily 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "fact_applications"
+        },
+        "options": {}
+      },
+      "id": "gsReadApps_02",
+      "name": "Read Applications",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        180
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "fact_habits"
+        },
+        "options": {}
+      },
+      "id": "gsReadHabitEvents_03",
+      "name": "Read Habit Events",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "dim_habit"
+        },
+        "options": {}
+      },
+      "id": "gsReadHabitDim_04",
+      "name": "Read Habit Targets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        420
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "alerts"
+        },
+        "options": {}
+      },
+      "id": "gsReadAlerts_05",
+      "name": "Read Existing Alerts",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        540
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "mergeAppsHabits_06",
+      "name": "Merge Apps + Habits",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        700,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "mergeDimAlerts_07",
+      "name": "Merge HabitDim + Alerts",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        700,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "mergeAllInputs_08",
+      "name": "Merge All Inputs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        940,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Build deterministic, deduplicated daily alerts\\nconst apps = $items('Read Applications', 0, 0).map((i) => i.json);\\nconst habitEvents = $items('Read Habit Events', 0, 0).map((i) => i.json);\\nconst habitDim = $items('Read Habit Targets', 0, 0).map((i) => i.json);\\nconst existingAlerts = $items('Read Existing Alerts', 0, 0).map((i) => i.json);\\n\\nconst now = new Date();\\nconst today = now.toISOString().slice(0, 10);\\nconst sevenDaysAgo = new Date(now);\\nsevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);\\nconst weekStart = sevenDaysAgo.toISOString().slice(0, 10).replace(/-/g, '_');\\n\\nconst existingIds = new Set(existingAlerts.map((a) => String(a.alert_id || '').trim()));\\nconst newAlerts = [];\\n\\nfor (const app of apps) {\\n  const status = String(app.status || '').toLowerCase();\\n  const appliedDateRaw = String(app.applied_date || '');\\n  const appliedDate = new Date(appliedDateRaw);\\n  const isOldEnough = !Number.isNaN(appliedDate.getTime()) && appliedDate < sevenDaysAgo;\\n  if (status !== 'applied' || !isOldEnough) continue;\\n\\n  const appId = String(app.app_id || 'unknown_app');\\n  const company = String(app.company || 'unknown company');\\n  const alertId = `ALERT_FOLLOWUP_${appId}_${today.replace(/-/g, '_')}`;\\n  if (existingIds.has(alertId)) continue;\\n\\n  newAlerts.push({\\n    alert_id: alertId,\\n    date: today,\\n    category: 'application_followup',\\n    message: `Follow up with company ${company} for application ${appId}`,\\n    status: 'open'\\n  });\\n}\\n\\nfor (const habit of habitDim) {\\n  const habitId = String(habit.habit_id || '').trim();\\n  const habitName = String(habit.name || habitId || 'habit');\\n  const targetWeek = Number(habit.target_week || 0);\\n  if (!habitId || !Number.isFinite(targetWeek) || targetWeek <= 0) continue;\\n\\n  const actualCount = habitEvents.filter((ev) => {\\n    const sameHabit = String(ev.habit_id || '').trim() === habitId;\\n    const done = String(ev.status || '').toLowerCase() === 'done';\\n    const eventDate = new Date(String(ev.date || ''));\\n    const inWindow = !Number.isNaN(eventDate.getTime()) && eventDate >= sevenDaysAgo;\\n    return sameHabit && done && inWindow;\\n  }).length;\\n\\n  if (actualCount >= targetWeek) continue;\\n\\n  // TODO: You can customize this message style to be more motivational.\\n  const alertId = `ALERT_HABIT_GAP_${habitId}_${weekStart}`;\\n  if (existingIds.has(alertId)) continue;\\n\\n  newAlerts.push({\\n    alert_id: alertId,\\n    date: today,\\n    category: 'habit_behind',\\n    message: `You are behind on ${habitName}: ${actualCount}/${targetWeek} in last 7 days`,\\n    status: 'open'\\n  });\\n}\\n\\nreturn [{\\n  json: {\\n    has_alerts: newAlerts.length > 0,\\n    run_date: today,\\n    new_alerts: newAlerts\\n  }\\n}];"
+      },
+      "id": "codeBuildAlerts_09",
+      "name": "Build New Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.has_alerts }}"
+            }
+          ]
+        }
+      },
+      "id": "ifAnyAlerts_10",
+      "name": "Any New Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Expand alert array into one item per row for Google Sheets append\\nconst data = items[0].json;\\nconst rows = data.new_alerts || [];\\nreturn rows.map((row) => ({ json: row }));"
+      },
+      "id": "codeExpandAlerts_11",
+      "name": "Expand Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "splitAlerts_12",
+      "name": "Each Alert",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "alerts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_id": "={{ $json.alert_id }}",
+            "date": "={{ $json.date }}",
+            "category": "={{ $json.category }}",
+            "message": "={{ $json.message }}",
+            "status": "={{ $json.status }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "gsAppendAlert_13",
+      "name": "Append Alert",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2060,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build one plain-text daily digest email\\nconst payload = $items('Build New Alerts', 0, 0)[0].json;\\nconst alerts = payload.new_alerts || [];\\nconst lines = alerts.map((a, i) => `${i + 1}. [${a.category}] ${a.message}`);\\nconst text = [\\n  `LifeOS Daily Alerts (${payload.run_date})`,\\n  '',\\n  `Total new alerts: ${alerts.length}`,\\n  '',\\n  ...lines\\n].join('\\n');\\n\\nreturn [{\\n  json: {\\n    to: $credentials.oauthTokenData?.email || $env.LIFEOS_GMAIL_TO,\\n    subject: `LifeOS Daily Alerts (${payload.run_date})`,\\n    message: text\\n  }\\n}];"
+      },
+      "id": "codeComposeDaily_14",
+      "name": "Compose Digest Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "mergeReadyEmail_15",
+      "name": "Merge Ready For Email",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2280,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "to": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "gmailSendDaily_16",
+      "name": "Send Daily Alert Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2500,
+        360
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Gmail_LifeOS",
+          "name": "Gmail_LifeOS"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Daily 09:00": {
+      "main": [
+        [
+          {
+            "node": "Read Applications",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Habit Events",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Habit Targets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Existing Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Applications": {
+      "main": [
+        [
+          {
+            "node": "Merge Apps + Habits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Habit Events": {
+      "main": [
+        [
+          {
+            "node": "Merge Apps + Habits",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read Habit Targets": {
+      "main": [
+        [
+          {
+            "node": "Merge HabitDim + Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Existing Alerts": {
+      "main": [
+        [
+          {
+            "node": "Merge HabitDim + Alerts",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Apps + Habits": {
+      "main": [
+        [
+          {
+            "node": "Merge All Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge HabitDim + Alerts": {
+      "main": [
+        [
+          {
+            "node": "Merge All Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Inputs": {
+      "main": [
+        [
+          {
+            "node": "Build New Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build New Alerts": {
+      "main": [
+        [
+          {
+            "node": "Any New Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any New Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Expand Alerts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Compose Digest Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Expand Alerts": {
+      "main": [
+        [
+          {
+            "node": "Each Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Each Alert": {
+      "main": [
+        [
+          {
+            "node": "Append Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Ready For Email",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Append Alert": {
+      "main": [
+        [
+          {
+            "node": "Each Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Digest Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Ready For Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Ready For Email": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "versionId": "a22b72aa-c7fa-4a90-b349-0d3e2a3f5a29"
+}

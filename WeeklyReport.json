@@ -1,0 +1,417 @@
+{
+  "name": "Weekly Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "cronExpression": "0 8 * * 1"
+        }
+      },
+      "id": "cronWeekly_01",
+      "name": "Cron Monday 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "fact_tasks"
+        },
+        "options": {}
+      },
+      "id": "gsReadTasks_02",
+      "name": "Read Tasks",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        180
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "fact_applications"
+        },
+        "options": {}
+      },
+      "id": "gsReadApps_03",
+      "name": "Read Applications",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "fact_learning"
+        },
+        "options": {}
+      },
+      "id": "gsReadLearning_04",
+      "name": "Read Learning",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        420
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "fact_habits"
+        },
+        "options": {}
+      },
+      "id": "gsReadHabits_05",
+      "name": "Read Habits",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        540
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "mergeTasksApps_06",
+      "name": "Merge Tasks + Apps",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        700,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "mergeLearningHabits_07",
+      "name": "Merge Learning + Habits",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        700,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "mergeAll_08",
+      "name": "Merge All",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        940,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Aggregate weekly metrics for last 7 days\\nconst tasks = $items('Read Tasks', 0, 0).map((i) => i.json);\\nconst apps = $items('Read Applications', 0, 0).map((i) => i.json);\\nconst learning = $items('Read Learning', 0, 0).map((i) => i.json);\\nconst habits = $items('Read Habits', 0, 0).map((i) => i.json);\\n\\nconst now = new Date();\\nconst start = new Date(now);\\nstart.setDate(start.getDate() - 7);\\nconst weekStartDate = start.toISOString().slice(0, 10);\\n\\nfunction inWindow(value) {\\n  const d = new Date(String(value || ''));\\n  return !Number.isNaN(d.getTime()) && d >= start && d <= now;\\n}\\n\\n// TODO: If you add a done_date column later, switch tasks_done to that field.\\nconst tasksDone = tasks.filter((t) => String(t.status || '').toLowerCase() === 'done' && (inWindow(t.due_date) || inWindow(t.created_date))).length;\\n\\nconst appsSent = apps.filter((a) => inWindow(a.applied_date)).length;\\n\\nconst learningMin = learning.reduce((sum, row) => {\\n  if (!inWindow(row.date)) return sum;\\n  const val = Number(row.duration_min || 0);\\n  return sum + (Number.isFinite(val) ? val : 0);\\n}, 0);\\nconst hoursLearning = Number((learningMin / 60).toFixed(1));\\n\\nconst workouts = habits.filter((h) => {\\n  return String(h.habit_id || '').toLowerCase() === 'gym' && String(h.status || '').toLowerCase() === 'done' && inWindow(h.date);\\n}).length;\\n\\nreturn [{\\n  json: {\\n    week_start_date: weekStartDate,\\n    tasks_done: tasksDone,\\n    apps_sent: appsSent,\\n    hours_learning: hoursLearning,\\n    workouts\\n  }\\n}];"
+      },
+      "id": "codeAggregate_09",
+      "name": "Aggregate Weekly Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LIFEOS_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "weekly_summaries"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "week_start_date": "={{ $json.week_start_date }}",
+            "tasks_done": "={{ $json.tasks_done }}",
+            "apps_sent": "={{ $json.apps_sent }}",
+            "hours_learning": "={{ $json.hours_learning }}",
+            "workouts": "={{ $json.workouts }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "gsAppendWeekly_10",
+      "name": "Write Weekly Summary",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1400,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GoogleSheets_LifeOS",
+          "name": "GoogleSheets_LifeOS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build a readable weekly report email\\nconst weekly = $items('Aggregate Weekly Metrics', 0, 0)[0].json;\\nconst text = [\\n  `LifeOS Weekly Report (week starting ${weekly.week_start_date})`,\\n  '',\\n  `Tasks done: ${weekly.tasks_done}`,\\n  `Applications sent: ${weekly.apps_sent}`,\\n  `Hours learning: ${weekly.hours_learning}`,\\n  `Workouts completed: ${weekly.workouts}`\\n].join('\\n');\\n\\nreturn [{\\n  json: {\\n    to: $credentials.oauthTokenData?.email || $env.LIFEOS_GMAIL_TO,\\n    subject: `LifeOS Weekly Report (${weekly.week_start_date})`,\\n    message: text\\n  }\\n}];"
+      },
+      "id": "codeComposeWeekly_11",
+      "name": "Compose Weekly Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "to": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "gmailSendWeekly_12",
+      "name": "Send Weekly Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1840,
+        300
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Gmail_LifeOS",
+          "name": "Gmail_LifeOS"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Monday 08:00": {
+      "main": [
+        [
+          {
+            "node": "Read Tasks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Applications",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Learning",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Habits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Tasks": {
+      "main": [
+        [
+          {
+            "node": "Merge Tasks + Apps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Applications": {
+      "main": [
+        [
+          {
+            "node": "Merge Tasks + Apps",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read Learning": {
+      "main": [
+        [
+          {
+            "node": "Merge Learning + Habits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Habits": {
+      "main": [
+        [
+          {
+            "node": "Merge Learning + Habits",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Tasks + Apps": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Learning + Habits": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Weekly Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Weekly Metrics": {
+      "main": [
+        [
+          {
+            "node": "Write Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Weekly Summary": {
+      "main": [
+        [
+          {
+            "node": "Compose Weekly Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Weekly Email": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "versionId": "c6a6f7bc-a47f-4c86-a44a-5b4d080aaf4a"
+}

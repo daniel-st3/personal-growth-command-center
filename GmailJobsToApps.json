@@ -1,0 +1,381 @@
+{
+  "name": "GmailJobsToApps",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "q": "subject:analyst OR subject:data OR subject:hiring OR subject:vacante"
+        }
+      },
+      "id": "e43b1bfc-72a3-4bde-8f81-54af28b61a35",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fallback extraction logic for portfolio\nfor (let item of $input.all()) {\n  const subject = item.json.subject || '';\n  const body = item.json.textPlain || '';\n  \n  // Basic regex extractions (could be replaced by AI node if paid API allowed)\n  const companyMatch = body.match(/company:\\s*([^\\n]+)/i);\n  const roleMatch = body.match(/role:\\s*([^\\n]+)/i);\n  \n  item.json.company = companyMatch ? companyMatch[1].trim() : 'Unknown Company';\n  item.json.role = roleMatch ? roleMatch[1].trim() : (subject.includes('Analyst') ? 'Data Analyst' : 'Unknown Role');\n  \n  // Extract sender email\n  const sender = item.json.from?.value?.[0]?.address || 'unknown@domain.com';\n  item.json.contact_email = sender;\n  \n  item.json.timestamp = Date.now();\n  item.json.generated_contact_id = `CONTACT_${item.json.timestamp}`;\n}\nreturn $input.all();"
+      },
+      "id": "18f99e30-d3ea-41df-a7d0-1a742fc7d9c6",
+      "name": "Extract Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "dim_contact",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.contact_email }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "b3e0e7a2-1e96-48c6-a6a2-ced600b3e558",
+      "name": "Lookup Contact",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [440, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "e9c12b7a-e4cc-40f0-a1bd-dd8ec52e80be",
+              "leftValue": "={{ $json.contact_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ff796541-e737-4dcd-9878-a53d162cb1cb",
+      "name": "Contact Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 3,
+      "position": [660, 200]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "dim_contact",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "company": "={{ $json.company }}",
+            "role": "={{ $json.role }}",
+            "source": "gmail"
+          }
+        },
+        "options": {
+          "keyRow": "contact_id"
+        }
+      },
+      "id": "e816a75a-bcaf-4422-92cf-4bdae3ae6121",
+      "name": "Update Contact",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [900, 80]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "dim_contact",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contact_id": "={{ $json.generated_contact_id }}",
+            "name": "={{ $json.contact_email.split('@')[0] }}",
+            "email": "={{ $json.contact_email }}",
+            "company": "={{ $json.company }}",
+            "role": "={{ $json.role }}",
+            "source": "gmail",
+            "stage": "lead"
+          }
+        },
+        "options": {}
+      },
+      "id": "a908a8f4-b2ef-45ca-832f-b258cf3f5a28",
+      "name": "Append Contact",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough"
+      },
+      "id": "ec82bbae-1db6-4a00-ab39-bca15a13c9e6",
+      "name": "Merge Contacts",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1140, 200]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "fact_applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "app_id": "=APP_{{ $json.timestamp }}",
+            "contact_id": "={{ $json.contact_id || $json.generated_contact_id }}",
+            "project_id": "JOB_SEARCH",
+            "applied_date": "={{ $now.toISODate() }}",
+            "status": "captured",
+            "role": "={{ $json.role }}",
+            "company": "={{ $json.company }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "1dd7e0aa-4ef4-41ed-bdca-1f488de1a5cb",
+      "name": "Append fact_applications",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1360, 200]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "fact_tasks",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task_id": "=TASK_{{ $json.timestamp }}",
+            "project_id": "JOB_SEARCH",
+            "created_date": "={{ $now.toISODate() }}",
+            "due_date": "={{ $now.plus(2, 'days').toISODate() }}",
+            "status": "todo",
+            "source": "gmail",
+            "description": "=Apply / follow up: {{ $json.company }} - {{ $json.role }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "e43b1bfc-72a3-4bde-8f81-54af28b61a34",
+      "name": "Append fact_tasks",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1580, 200]
+    },
+    {
+      "parameters": {},
+      "id": "766af44f-f3f2-4822-a9b0-bb238a2e4fe4",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 500]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "alerts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_id": "=ERR_{{ $now.toMillis() }}",
+            "date": "={{ $now.toISODate() }}",
+            "category": "gmail_sync_error",
+            "message": "={{ $json.error.message }}",
+            "status": "new"
+          }
+        },
+        "options": {}
+      },
+      "id": "ad604c55-2244-486a-b2f7-fe8d0ee5df25",
+      "name": "Append Alert",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [220, 500]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Metadata": {
+      "main": [
+        [
+          {
+            "node": "Lookup Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Contact": {
+      "main": [
+        [
+          {
+            "node": "Contact Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Exists?": {
+      "main": [
+        [
+          {
+            "node": "Update Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Contact": {
+      "main": [
+        [
+          {
+            "node": "Merge Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Contact": {
+      "main": [
+        [
+          {
+            "node": "Merge Contacts",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Contacts": {
+      "main": [
+        [
+          {
+            "node": "Append fact_applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append fact_applications": {
+      "main": [
+        [
+          {
+            "node": "Append fact_tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Append Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

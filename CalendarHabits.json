@@ -1,0 +1,170 @@
+{
+  "name": "CalendarHabits",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hourly"
+            }
+          ]
+        }
+      },
+      "id": "766af44f-f3f2-4822-a9b0-bb238a2e4fe5",
+      "name": "Cron (Hourly)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": "primary",
+        "limit": 50,
+        "options": {
+          "timeMin": "={{ $today.startOf('day').toISO() }}",
+          "timeMax": "={{ $today.endOf('day').toISO() }}"
+        }
+      },
+      "id": "b3e0e7a2-1e96-48c6-a6a2-ced600b3e551",
+      "name": "Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const habits = [];\nconst learning = [];\nconst now = new Date();\n\nfor (let item of $input.all()) {\n  const title = item.json.summary ? item.json.summary.toLowerCase() : '';\n  const endTime = new Date(item.json.end?.dateTime || item.json.end?.date);\n  const timestamp = now.getTime() + Math.floor(Math.random() * 1000);\n  \n  if (title.includes('gym') || title.includes('workout')) {\n    habits.push({\n      json: {\n        event_id: `HABIT_${timestamp}`,\n        habit_id: 'gym',\n        date: now.toISOString().split('T')[0],\n        status: endTime < now ? 'done' : 'skipped',\n        notes: `Auto-logged from Calendar: ${item.json.summary}`\n      }\n    });\n  }\n  \n  if (title.includes('study') || title.includes('curso') || title.includes('sql') || title.includes('ml')) {\n    let skill = 'general';\n    if (title.includes('sql')) skill = 'SQL';\n    if (title.includes('ml')) skill = 'ML';\n    \n    habits.push({\n      json: {\n        event_id: `HABIT_${timestamp}_study`,\n        habit_id: 'study',\n        date: now.toISOString().split('T')[0],\n        status: endTime < now ? 'done' : 'skipped',\n        notes: `Study session`\n      }\n    });\n    \n    learning.push({\n      json: {\n        session_id: `LRN_${timestamp}`,\n        project_id: 'LEARNING',\n        skill: skill,\n        date: now.toISOString().split('T')[0],\n        duration_min: 60, // Assuming 1 hour block\n        source_url: 'calendar'\n      }\n    });\n  }\n}\n\n// We output habits on output index 0 and learning on output index 1\nreturn [habits, learning];"
+      },
+      "id": "18f99e30-d3ea-41df-a7d0-1a742fc7d9c7",
+      "name": "Classify Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "fact_habits",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.event_id }}",
+            "habit_id": "={{ $json.habit_id }}",
+            "date": "={{ $json.date }}",
+            "status": "={{ $json.status }}",
+            "notes": "={{ $json.notes }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ad604c55-2244-486a-b2f7-fe8d0ee5df26",
+      "name": "Append fact_habits",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "fact_learning",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $json.session_id }}",
+            "project_id": "={{ $json.project_id }}",
+            "skill": "={{ $json.skill }}",
+            "date": "={{ $json.date }}",
+            "duration_min": "={{ $json.duration_min }}",
+            "source_url": "={{ $json.source_url }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ad604c55-2244-486a-b2f7-fe8d0ee5df27",
+      "name": "Append fact_learning",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        660,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Cron (Hourly)": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Classify Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Events": {
+      "main": [
+        [
+          {
+            "node": "Append fact_habits",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append fact_learning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
