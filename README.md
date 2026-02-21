@@ -2,6 +2,14 @@
 
 Hey! This is a personal project I built to help manage my job search, learning goals, and daily habits. I wanted to build something practical that actually solves a problem for me, while also practicing some data engineering logic.
 
+## Tech Stack
+
+![n8n](https://img.shields.io/badge/n8n-Workflow%20Automation-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
+![Google Sheets](https://img.shields.io/badge/Google%20Sheets-Data%20Warehouse-34A853?style=for-the-badge&logo=googlesheets&logoColor=white)
+![Google Calendar](https://img.shields.io/badge/Google%20Calendar-Event%20Source-4285F4?style=for-the-badge&logo=googlecalendar&logoColor=white)
+![Gmail](https://img.shields.io/badge/Gmail-Email%20Trigger-EA4335?style=for-the-badge&logo=gmail&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-Data%20Transforms-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+
 ## What is this?
 
 Instead of setting up a full Postgres database and paying for hosting, I decided to use Google Sheets as a lightweight data warehouse. I built a set of automated workflows using n8n (on the free cloud tier) to extract data from my Gmail and Google Calendar, and push it into my Sheets.
@@ -80,6 +88,23 @@ I structured my spreadsheet using a basic star schema with fact and dimension ta
 
 ![Weekly Report Pipeline](pics/weekly-report.png)
 
+## Key Takeaways
+
+Building this project gave me hands-on experience with concepts that come up constantly in data engineering interviews:
+
+- **Designing a star schema for personal analytics** — structuring raw life data into clean fact and dimension tables, even without a traditional database.
+- **Implementing upsert logic without a database** — using `appendOrUpdate` operations in Google Sheets to handle inserts and updates in a single pass.
+- **Handling deduplication and error alerting in ETL pipelines** — building deterministic alert IDs and checking against existing records to avoid duplicate rows.
+- **Automating daily/weekly reporting with cron triggers** — scheduling pipelines that aggregate metrics and deliver email summaries without any manual intervention.
+
 ## Why I built this
 
 I needed a simple way to track my job applications and study progress. By structuring the raw data into fact and dimension tables, I can easily connect the sheet to Looker Studio or Tableau later to build automated dashboards. It was a fun way to apply basic data extraction and pipeline concepts to my actual day-to-day life.
+
+## Future Improvements
+
+- 📊 Connect Google Sheets to **Looker Studio** or **Tableau** for automated visual dashboards
+- 💬 Add **Slack notifications** as an alternative to email alerts
+- 🔗 Integrate with the **LinkedIn Job API** to auto-capture applications
+- 🧠 Add an AI summarization step using a local LLM for weekly insight generation
+- 📱 Build a simple front-end dashboard to view metrics on mobile
