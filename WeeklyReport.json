@@ -28,8 +28,7 @@
           "__rl": true,
           "mode": "name",
           "value": "fact_tasks"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadTasks_02",
       "name": "Read Tasks",
@@ -58,8 +57,7 @@
           "__rl": true,
           "mode": "name",
           "value": "fact_applications"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadApps_03",
       "name": "Read Applications",
@@ -88,8 +86,7 @@
           "__rl": true,
           "mode": "name",
           "value": "fact_learning"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadLearning_04",
       "name": "Read Learning",
@@ -118,8 +115,7 @@
           "__rl": true,
           "mode": "name",
           "value": "fact_habits"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadHabits_05",
       "name": "Read Habits",
@@ -138,7 +134,8 @@
     },
     {
       "parameters": {
-        "mode": "wait"
+        "mode": "combine",
+        "combineBy": "combineAll"
       },
       "id": "mergeTasksApps_06",
       "name": "Merge Tasks + Apps",
@@ -151,7 +148,8 @@
     },
     {
       "parameters": {
-        "mode": "wait"
+        "mode": "combine",
+        "combineBy": "combineAll"
       },
       "id": "mergeLearningHabits_07",
       "name": "Merge Learning + Habits",
@@ -164,7 +162,8 @@
     },
     {
       "parameters": {
-        "mode": "wait"
+        "mode": "combine",
+        "combineBy": "combineAll"
       },
       "id": "mergeAll_08",
       "name": "Merge All",
@@ -191,7 +190,7 @@
     },
     {
       "parameters": {
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "mode": "id",
@@ -211,8 +210,7 @@
             "hours_learning": "={{ $json.hours_learning }}",
             "workouts": "={{ $json.workouts }}"
           }
-        },
-        "options": {}
+        }
       },
       "id": "gsAppendWeekly_10",
       "name": "Write Weekly Summary",
@@ -247,8 +245,7 @@
         "operation": "send",
         "to": "={{ $json.to }}",
         "subject": "={{ $json.subject }}",
-        "message": "={{ $json.message }}",
-        "options": {}
+        "message": "={{ $json.message }}"
       },
       "id": "gmailSendWeekly_12",
       "name": "Send Weekly Email",

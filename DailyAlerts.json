@@ -28,8 +28,7 @@
           "__rl": true,
           "mode": "name",
           "value": "fact_applications"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadApps_02",
       "name": "Read Applications",
@@ -58,8 +57,7 @@
           "__rl": true,
           "mode": "name",
           "value": "fact_habits"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadHabitEvents_03",
       "name": "Read Habit Events",
@@ -88,8 +86,7 @@
           "__rl": true,
           "mode": "name",
           "value": "dim_habit"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadHabitDim_04",
       "name": "Read Habit Targets",
@@ -118,8 +115,7 @@
           "__rl": true,
           "mode": "name",
           "value": "alerts"
-        },
-        "options": {}
+        }
       },
       "id": "gsReadAlerts_05",
       "name": "Read Existing Alerts",
@@ -138,7 +134,8 @@
     },
     {
       "parameters": {
-        "mode": "wait"
+        "mode": "combine",
+        "combineBy": "combineAll"
       },
       "id": "mergeAppsHabits_06",
       "name": "Merge Apps + Habits",
@@ -151,7 +148,8 @@
     },
     {
       "parameters": {
-        "mode": "wait"
+        "mode": "combine",
+        "combineBy": "combineAll"
       },
       "id": "mergeDimAlerts_07",
       "name": "Merge HabitDim + Alerts",
@@ -164,7 +162,8 @@
     },
     {
       "parameters": {
-        "mode": "wait"
+        "mode": "combine",
+        "combineBy": "combineAll"
       },
       "id": "mergeAllInputs_08",
       "name": "Merge All Inputs",
@@ -192,11 +191,6 @@
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
           "conditions": [
             {
               "id": "if-has-alerts",
@@ -210,8 +204,7 @@
             }
           ],
           "combinator": "and"
-        },
-        "options": {}
+        }
       },
       "id": "ifAnyAlerts_10",
       "name": "Any New Alerts?",
@@ -238,8 +231,7 @@
     },
     {
       "parameters": {
-        "batchSize": 1,
-        "options": {}
+        "batchSize": 1
       },
       "id": "splitAlerts_12",
       "name": "Each Alert",
@@ -252,7 +244,7 @@
     },
     {
       "parameters": {
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "mode": "id",
@@ -272,8 +264,7 @@
             "message": "={{ $json.message }}",
             "status": "={{ $json.status }}"
           }
-        },
-        "options": {}
+        }
       },
       "id": "gsAppendAlert_13",
       "name": "Append Alert",
@@ -305,7 +296,8 @@
     },
     {
       "parameters": {
-        "mode": "wait"
+        "mode": "combine",
+        "combineBy": "combineAll"
       },
       "id": "mergeReadyEmail_15",
       "name": "Merge Ready For Email",
@@ -321,8 +313,7 @@
         "operation": "send",
         "to": "={{ $json.to }}",
         "subject": "={{ $json.subject }}",
-        "message": "={{ $json.message }}",
-        "options": {}
+        "message": "={{ $json.message }}"
       },
       "id": "gmailSendDaily_16",
       "name": "Send Daily Alert Email",
