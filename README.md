@@ -42,6 +42,9 @@ I structured my spreadsheet using a basic star schema with fact and dimension ta
 
 1. Create a free account on n8n Cloud (or run it locally).
 2. Go to Credentials and add your Google permissions (Calendar, Sheets, and Gmail).
+3. **Environment Variables:** For the workflows to run automatically without modifying every node, set up the following environment variables in your n8n instance (in your `.env` file if self-hosting, or via the UI):
+   - `LIFEOS_SHEET_ID`: Your Google Sheet ID.
+   - `LIFEOS_GMAIL_TO`: The email address where you want to receive alerts and reports.
 
 ### 3. Import the Workflows
 
@@ -52,7 +55,7 @@ I structured my spreadsheet using a basic star schema with fact and dimension ta
    - `DailyAlertsAndSummary.json`: Sends me an email every morning if I missed my weekly habit goals or need to follow up on a job application.
    - `DailyAlerts.json`: Sends a deduplicated daily digest email merging data from applications, habit targets, and existing alerts.
    - `WeeklyReport.json`: Runs every Monday morning to aggregate the previous week's metrics (tasks completed, hours studied, workouts done) and emails me a summary.
-2. In each workflow, replace the Google Sheets node Document IDs with your own Spreadsheet ID.
+2. If you didn't set up environment variables, manually go into each Google Sheets node and Gmail node to replace the `={{ $env.LIFEOS_SHEET_ID }}` and `={{ $env.LIFEOS_GMAIL_TO }}` expressions with your actual Spreadsheet ID and email address.
 3. Activate the workflows and you're good to go!
 
 ## Workflow Architecture Showcase
