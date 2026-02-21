@@ -4,7 +4,12 @@
     {
       "parameters": {
         "rule": {
-          "cronExpression": "0 9 * * *"
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
         }
       },
       "id": "cronDaily0900_01",
@@ -293,13 +298,12 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll"
+        "mode": "wait"
       },
       "id": "mergeReadyEmail_15",
       "name": "Merge Ready For Email",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 2.1,
       "position": [
         2280,
         360
