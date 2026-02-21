@@ -134,13 +134,12 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll"
+        "mode": "wait"
       },
       "id": "mergeAppsHabits_06",
       "name": "Merge Apps + Habits",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 2.1,
       "position": [
         700,
         240
@@ -148,13 +147,12 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll"
+        "mode": "wait"
       },
       "id": "mergeDimAlerts_07",
       "name": "Merge HabitDim + Alerts",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 2.1,
       "position": [
         700,
         480
@@ -162,13 +160,12 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll"
+        "mode": "wait"
       },
       "id": "mergeAllInputs_08",
       "name": "Merge All Inputs",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 2.1,
       "position": [
         940,
         360
@@ -236,7 +233,7 @@
       "id": "splitAlerts_12",
       "name": "Each Alert",
       "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
+      "typeVersion": 2,
       "position": [
         1840,
         300

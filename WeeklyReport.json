@@ -134,13 +134,12 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll"
+        "mode": "wait"
       },
       "id": "mergeTasksApps_06",
       "name": "Merge Tasks + Apps",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 2.1,
       "position": [
         700,
         240
@@ -148,13 +147,12 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll"
+        "mode": "wait"
       },
       "id": "mergeLearningHabits_07",
       "name": "Merge Learning + Habits",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 2.1,
       "position": [
         700,
         480
@@ -162,13 +160,12 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll"
+        "mode": "wait"
       },
       "id": "mergeAll_08",
       "name": "Merge All",
       "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "typeVersion": 2.1,
       "position": [
         940,
         360
